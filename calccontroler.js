@@ -2,12 +2,14 @@ class CalcControler{
 
 constructor(){
 
+    this._lastOperator = '';
+    this._lastNumber = '';
     this._operation = [];
     this.locale = "pt-BR";
     this._displaycalcEl = document.querySelector("#display");
     this._dateEl = document.querySelector("#hora");
     this._timeEl = document.querySelector("#data");
-    this._displayCalc;
+    //this._displayCalc;
     this._currentDate;
     this.initialize();
     this.initButtonsEvents();
@@ -67,10 +69,38 @@ setLastOperation(value){
     this._operation[this._operation.length -1] = value;
 }
 
+getResult(){
+    return eval(this._operation.join(""));
+}
+
 calc(){
     
-    let lastnum = this._operation.pop();
-    let result = eval(this._operation.join(""));
+    let lastnum = '';
+    this._lastOperator = this.getLastItem();
+
+    if(this._operation.length < 3){
+        
+        let firstIt = this._operation[0];
+        this._operation = [firstIt, this._lastOperator, this._lastNumber]
+    }
+
+    if(this._operation.length > 3){
+        lastnum = this._operation.pop();
+
+        this._lastOperator = this.getLastItem();
+        this._lastNumber = this.getResult();
+    }
+
+    else if(this._operation.length == 3){
+
+        this._lastNumber = this.getLastItem(false);        
+
+    }
+
+    console.log('_lastOperator', this._lastOperator);
+    console.log('_lastNumber', this._lastNumber);
+
+    let result = this.getResult();
     
     if (lastnum == '%') {
 
@@ -80,7 +110,9 @@ calc(){
 
     } else{
     
-        this._operation = [result, lastnum];
+        this._operation = [result];
+
+        if(lastnum) this._operation.push(lastnum);
 
     }
     
@@ -88,19 +120,32 @@ calc(){
 
 }
 
-setLastNumberDisplay(){
+getLastItem(isOperator = true){
 
-    let lastnumber;
+    let lastItem;
     
     for(let i = this._operation.length - 1; i >=0; i--){
 
-        if(!this.isOperator(this._operation[i])){
+        if(this.isOperator(this._operation[i])==isOperator){
 
-            lastnumber = this._operation[i];
-        break    
+            lastItem = this._operation[i];
+        break;
         }
 
+        if(!lastItem){
+
+            lastItem = (isOperator) ? this._lastOperator : this._lastNumber;
+
+        }    
+
     }
+
+    return lastItem;
+}
+
+setLastNumberDisplay(){
+
+    let lastnumber = this.getLastItem(false);
     
     if(!lastnumber) lastnumber = 0;
 
