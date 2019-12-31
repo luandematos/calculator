@@ -2,6 +2,8 @@ class CalcControler{
 
 constructor(){
 
+    this._audio = new Audio("click.mp3");
+    this._audioOnOff = false;
     this._lastOperator = '';
     this._lastNumber = '';
     this._operation = [];
@@ -13,12 +15,40 @@ constructor(){
     this._currentDate;
     this.initialize();
     this.initButtonsEvents();
+    this.initKeyboard();
+}
+
+pasteFromClipBoard(){
+
+    document.addEventListener('paste', e=>{
+
+       let text = e.clipboardData.getData('Text');
+
+       this.displayCalc = parseFloat(text);
+
+    })
+
+}
+
+copyToClipBoard(){
+
+    let input = document.createElement('input');
+
+    input.value = this.displayCalc;
+
+    document.body.appendChild(input);
+
+    input.select();
+
+    document.execCommand("Copy");
+
+    input.remove();
+
 }
 
     initialize(){
-        this.setLastNumberDisplay();
 
-        this.setDisplayTimeDate();
+    this.setDisplayTimeDate();
 
     setInterval(()=>{
 
@@ -26,8 +56,93 @@ constructor(){
 
 
       }, 1000);
+        
+        
+        this.pasteFromClipBoard();
+        this.setLastNumberDisplay();
+
+      document.querySelectorAll('.btn-ac').forEach(btn=>{
+
+        btn.addEventListener('dblclick', e=>{
+
+            this.toggleAudio();
+    
+        })
+      })  
 
 }   
+
+toggleAudio(){
+
+    this._audioOnOff = !this._audioOnOff;
+
+}
+
+playAudio(){
+
+    if(this._audioOnOff){
+
+        this._audio.currentTime = 0;
+        this._audio.play();
+
+    }
+
+}
+
+initKeyboard(){
+
+    document.addEventListener('keyup', e=>{
+
+        this.playAudio();
+
+        switch(e.key){
+        
+            case 'Escape':
+                this.clearAll();
+            break;
+            case 'Backspace':
+                this.clearEntry();
+            break;
+            case '+':
+            case '-':
+            case '*':
+            case '/':
+            case '%':
+               this.addOperation(e.key); 
+                break;
+            case '=':
+            case 'Enter':    
+                this.calc();
+                break;    
+            case '.':
+            case ',':
+                this.addDot('.')
+            break;
+            
+            case '0':
+            case '1':
+            case '2':
+            case '3':     
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+    
+                this.addOperation(parseInt(e.key));
+                
+                break;
+
+            case 'c':
+                if(e.ctrlKey) this.copyToClipBoard();
+            break        
+                                                       
+        }
+        
+    });
+
+}
 
 addEventListenerAll(element, events, fn){
 
@@ -42,6 +157,8 @@ addEventListenerAll(element, events, fn){
 clearAll(){
 
     this._operation = [];
+    this._lastNumber = ''
+    this._lastOperator = ''
     this.setLastNumberDisplay();
 
 };
@@ -70,9 +187,16 @@ setLastOperation(value){
 }
 
 getResult(){
-    return eval(this._operation.join(""));
+    try{
+        return eval(this._operation.join(""));
+    }catch(e){
+        setTimeout(() => {
+            this.setError();
+            
+        }, 1);
+    }
 }
-
+//Metodo calculo 
 calc(){
     
     let lastnum = '';
@@ -175,11 +299,7 @@ addOperation(value){
             
             this.setLastOperation(value);
 
-        } else if(isNaN(value)){
-            
-            console.log('Outra coisa',value);
-           
-        }else{
+        } else{
                
             this.pushOperation(value);
             this.setLastNumberDisplay();
@@ -194,7 +314,7 @@ addOperation(value){
         }else{
 
             let newValue = this.getLastOperation().toString() + value.toString();
-            this.setLastOperation(parseInt(newValue));
+            this.setLastOperation(newValue);
 
             //Atualizar display
             this.setLastNumberDisplay();
@@ -211,7 +331,28 @@ setError(){
 
 }
 
+addDot(){
+
+    let dot = this.getLastOperation();
+
+    if(typeof dot === 'String' && dot.split('').indexOf('.') > -1) return;
+
+    if(this.isOperator(dot) || !dot){
+
+        this.pushOperation('0.');
+    } else{
+
+        this.setLastOperation(dot.toString() + '.');
+
+    }
+
+    this.setLastNumberDisplay();
+
+}
+
 execBtn(value){
+
+    this.playAudio();
 
     switch(value){
         
@@ -240,7 +381,7 @@ execBtn(value){
             this.calc();
         break;
         case 'ponto':
-            this.addOperation('.')
+            this.addDot('.')
         break;
         
         case '0':
@@ -318,9 +459,16 @@ setDisplayTimeDate(){
 
     }
 
-    set displayCalc(valor){
+    set displayCalc(value){
+
+        if(value.toString().length > 10){
+
+            this.setError();
+            return false;
+
+        }
         
-        this._displaycalcEl.innerHTML = valor;
+        this._displaycalcEl.innerHTML = value;
 
     }
 
